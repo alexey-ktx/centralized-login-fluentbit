@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+
+  MinPolicyPercent:
+      Type: Number
+
+  MaxPolicyPercent:
+      Type: Number
+
+  CpuUnits:
+    Type: String
+
+  MemoryUnits:
+    Type: String
+
+  DesiredTask:
+    Type: Number
+
+Resources:
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: LoggingTest
+      ServiceName: LoggingFluentdTest
+      PlacementStrategies:
+        - Type: binpack
+          Field: cpu
+      DeploymentConfiguration:
+        MinimumHealthyPercent: !Ref MinPolicyPercent
+        MaximumPercent: !Ref MaxPolicyPercent
+      DesiredCount: !Ref DesiredTask
+      TaskDefinition: !Ref Task
+      LoadBalancers:
+        - ContainerName: logging-fluent-test
+          ContainerPort: 80
+          TargetGroupArn:
+            Fn::ImportValue: TargetGroupLogginFluentdTest
+   
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Memory: !Ref MemoryUnits
+      Cpu: !Ref CpuUnits
+      TaskRoleArn:
+        Fn::ImportValue: LogginFluentdTestRole-ARN
+      ExecutionRoleArn:
+        Fn::ImportValue: LogginFluentdTestRole-ARN
+      PlacementConstraints:
+        - Type: "memberOf"
+          Expression: "attribute:Role == main_node" #This is not a TAG. This is an ecs-agent's attribute.
+      ContainerDefinitions:
+        - Name: loggin-fluentd-test
+          Image: 541455984888.dkr.ecr.eu-west-1.amazonaws.com/loggin-fluentd-test:latest ##ESTO HAY QUE HACERLO ANTES...
+          Essential: true
+          PortMappings:
+            - ContainerPort: 80
+          Command:
+            - sleep 1000 # ESTO HAY QUE MIRARLO
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -s --fail "http://localhost/"
+            StartPeriod: 120
+
+        - Name: Fluent
+          Image: 541455984888.dkr.ecr.eu-west-1.amazonaws.com/fluentd:stable  ### OJO, Esto hay que cambiarlo a Fluent Bits
+          Essential: false
+          VolumesFrom:
+            - SourceContainer: loggin-fluentd-test
+  
+ 
+Outputs:
+  Service:
+    Description: ECS Service Arn for Logging Fluentd Test
+    Value: !Ref Service
+    Export:
+      Name: !Sub ${AWS::StackName}
+
+  Task:
+    Description: DH Simulator TargetGroup DH Simulator Arn
+    Value: !Ref Task
+    Export:
+      Name: !Sub ${AWS::StackName}-TaskDefinition

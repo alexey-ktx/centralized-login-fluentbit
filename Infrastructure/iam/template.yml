@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  LogginFluentdTestRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+                - ecs.amazonaws.com
+                - ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: S3-interactions-logs
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                  - s3:Put*
+                  - s3:CreateMultipartUpload
+                Resource:
+                  - "arn:aws:s3:::LoggingFluentdTest-logs"
+                  - "arn:aws:s3:::LoggingFluentdTest-logs/*"
+        - PolicyName: Sts-interactions
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - ecr:Get*
+                  - ecr:Describe*
+                  - ecr:List*
+                  - ecr:BatchGetImage
+                  - ecr:BatchCheckLayerAvailability
+                Resource:
+                  - "*"
+
+Outputs:
+
+  LogginFluentdTestRole:
+    Description: Logging Fluentd Test role
+    Value: !GetAtt LogginFluentdTestRole.Arn
+    Export:
+      Name: LogginFluentdTestRole-ARN

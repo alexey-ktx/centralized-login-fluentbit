@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+
+  ALBLogginFluentdTest:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: LogginFluentdTest
+      Scheme: internet-facing
+      SecurityGroups:
+        - Fn::ImportValue: LogginFluentdTestSG
+#        - Fn::ImportValue: !Sub ${Environment}-infrastructure-ecs-SG-Default-Alb-SG
+      Subnets:
+        - subnet-2581167f
+        - subnet-4c082d04
+        - subnet-51c68c37
+      
+  TargetGroupLogginFluentdTest:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: ALBLogginFluentdTest
+    Properties:
+      VpcId: vpc-cf7068a9
+      Port: 80
+      Protocol: HTTP
+      Matcher:
+        HttpCode: 200-299
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: '/'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 4
+      # TargetType: ip
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      
+  ListenerHTTPLogginFluentdTest:
+     Type: "AWS::ElasticLoadBalancingV2::Listener"
+     Properties:
+       DefaultActions:
+         - Type: forward
+           TargetGroupArn: !Ref TargetGroupLogginFluentdTest
+           Order: 1
+       LoadBalancerArn: !Ref ALBLogginFluentdTest
+       Port: 80
+       Protocol: HTTP
+
+Outputs:
+
+  AlbArn:
+    Description: ALB Arn
+    Value: !Ref ALBLogginFluentdTest
+    Export:
+      Name: ALBLogginFluentdTest
+  
+  TargetGroupDHSimulator:
+    Description: DHSimulator TargetGroupDHSimulator Arn
+    Value: !Ref TargetGroupLogginFluentdTest
+    Export:
+      Name: TargetGroupLogginFluentdTest

@@ -1,0 +1,9 @@
+{
+  "Parameters": {
+    "MinPolicyPercent": "100",
+    "MaxPolicyPercent": "200",
+    "MemoryUnits": "4096",
+    "CpuUnits": "1024",
+    "DesiredTask": "1"
+  }
+}
