@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+
+ LogginFluentdTestSG:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        Param1: AAA #TEMPORAL
+      TemplateURL: Infrastructure/sg/template.yml
+  
+  LogginFluentdTestIAM:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        Param1: AAA #TEMPORAL
+      TemplateURL: Infrastructure/iam/template.yml
+  
+  LogginFluentdTestALB:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        Param1: AAA #TEMPORAL
+      TemplateURL: Infrastructure/alb/template.yml
+  
+  LogginFluentdTestECS:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        Param1: AAA #TEMPORAL
+      TemplateURL: Infrastructure/ecs/template.yml
