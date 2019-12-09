@@ -20,4 +20,4 @@ RUN apk add --update --virtual .build-deps \
            /home/fluent/.gem/ruby/2.4.0/cache/*.gem
 
 
- COPY docker/fluent.conf /fluentd/etc/fluent.conf
+COPY docker/fluent.conf /fluentd/etc/fluent.conf
