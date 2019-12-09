@@ -104,7 +104,7 @@ Outputs:
       Name: Service
 
   Task:
-    Description: Logging Fluentd Test TargetGroup Arn
+    Description: Logging Fluentd Test task definition
     Value: !Ref Task
     Export:
       Name: TaskDefinition

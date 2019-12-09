@@ -8,46 +8,97 @@ Parameters:
     Default: fluentd-aggregator
 
 Resources:
-
+  SecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+          GroupName: SG-Aggregator-Fluentd-Fargate
+          GroupDescription: Allows ingress on 24224 for the fluentd aggregator
+          SecurityGroupIngress:
+              - IpProtocol: "tcp"
+                FromPort: 24224
+                ToPort: 24224
+                CidrIp: "0.0.0.0/0"
+          VpcId: vpc-cf7068a9
+          
   Service:
-    Type: AWS::ECS::Service
-    Properties:
-      Cluster: Testing-Env-Cluster
-      ServiceName: !Ref Project
-      TaskDefinition: !Ref Task
+        Type: AWS::ECS::Service
+        DependsOn: Listener
+        Properties:
+            Cluster: Testing-Env-Cluster
+            # Role: !Ref ServiceRole
+            DesiredCount: 1
+            LaunchType: FARGATE
+            TaskDefinition: !Ref Task
+            DeploymentConfiguration:
+                MaximumPercent: 200
+                MinimumHealthyPercent: 100
+            NetworkConfiguration:
+                AwsvpcConfiguration:
+                  SecurityGroups:
+                    - !Ref SecurityGroup
+                  Subnets: 
+                    - subnet-2581167f
+                    - subnet-4c082d04
+            LoadBalancers:
+                - ContainerName: fluentd-aggregator
+                  ContainerPort: 24224
+                  TargetGroupArn: 
+                    Fn::ImportValue: TargetGroupLogginFluentdTest
 
   Task:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      Family: fluentd-aggregator
       TaskRoleArn:
         Fn::ImportValue: LogginFluentdTestRole-ARN
       ExecutionRoleArn:
         Fn::ImportValue: LogginFluentdTestRole-ARN
-      Volumes:
-        - Host: 
-            SourcePath: "/var/log/ecs"
-          Name: ecs-logs
+      NetworkMode: awsvpc
+      Cpu: "4096"
+      Memory: "8192"
       ContainerDefinitions:        
-        - Name: Fluent
+        - Name: fluentd-aggregator
           Image: 835215910525.dkr.ecr.eu-west-1.amazonaws.com/my-fluentd:v1
           Essential: true
           MemoryReservation: 128
           Memory: 256
-          MountPoints:
-            - ContainerPath: "/var/log/ecs"
-              ReadOnly: true
-              SourceVolume: ecs-logs
-          Environment:            
-            - Name: PATH_TO_FILES
-              Value: '/var/log/ecs/ecs-agent.log*'
-            - Name: PATH_POSITION_FILE
-              Value: !Sub "/tmp/${Project}.pos"
-            - Name: PROJECT
-              Value: !Ref Project
-            - Name: AWS_REGION
-              Value: !Ref AWS::Region
-            - Name: ES_TAG
-              Value: "ecs-agent"
-            - Name: ROLE_ARN
-              Value:
-                Fn::ImportValue: LogginFluentdTestRole-ARN
+          PortMappings:
+            - ContainerPort: 24224
+              HostPort: 24224
+              Protocol: tcp
+          LogConfiguration:
+                    LogDriver: awslogs
+                    Options:
+                        awslogs-group: !Ref AWS::StackName
+                        awslogs-region: !Ref AWS::Region
+                        awslogs-stream-prefix: test-logging-driver
+          HealthCheck:
+              Command:
+                - CMD-SHELL
+                - curl http://localhost:8888/healthcheck?json=%7B%22log%22%3A+%22health+check%22%7D || exit 1
+              StartPeriod: 30
+  LoadBalancer:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            Name: !Ref Project 
+            Type: network
+            Scheme: internal
+            Subnets: 
+              - subnet-2581167f
+              - subnet-4c082d04
+            Tags:
+                - Key: Name
+                  Value: Test-Logging-Driver
+
+  Listener:
+        Type: AWS::ElasticLoadBalancingV2::Listener
+        Properties:
+            DefaultActions:
+            - Type: forward
+              TargetGroupArn: 
+                Fn::ImportValue: TargetGroupLogginFluentdTest
+            LoadBalancerArn: !Ref LoadBalancer
+            Port: 24224
+            Protocol: TCP
+  
+  
