@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+  
+  Project:
+    Description: Fluentd
+    Type: String
+    Default: fluentd-aggregator
+
+Resources:
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: Testing-Env-Cluster
+      ServiceName: !Ref Project
+      TaskDefinition: !Ref Task
+
+  Task:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      TaskRoleArn:
+        Fn::ImportValue: LogginFluentdTestRole-ARN
+      ExecutionRoleArn:
+        Fn::ImportValue: LogginFluentdTestRole-ARN
+      Volumes:
+        - Host: 
+            SourcePath: "/var/log/ecs"
+          Name: ecs-logs
+      ContainerDefinitions:        
+        - Name: Fluent
+          Image: 835215910525.dkr.ecr.eu-west-1.amazonaws.com/my-fluentd:v1
+          Essential: true
+          MemoryReservation: 128
+          Memory: 256
+          MountPoints:
+            - ContainerPath: "/var/log/ecs"
+              ReadOnly: true
+              SourceVolume: ecs-logs
+          Environment:            
+            - Name: PATH_TO_FILES
+              Value: '/var/log/ecs/ecs-agent.log*'
+            - Name: PATH_POSITION_FILE
+              Value: !Sub "/tmp/${Project}.pos"
+            - Name: PROJECT
+              Value: !Ref Project
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: ES_TAG
+              Value: "ecs-agent"
+            - Name: ROLE_ARN
+              Value:
+                Fn::ImportValue: LogginFluentdTestRole-ARN

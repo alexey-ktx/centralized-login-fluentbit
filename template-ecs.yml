@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+
+ LogginFluentdTestECSCluster:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: https://nested-templates-wip.s3.amazonaws.com/ecs/template-cluster.yml
+   
+#  LogginFluentdTestECSService:
+#     Type: "AWS::CloudFormation::Stack"
+#     Properties:
+#       TemplateURL: https://nested-templates-wip.s3.amazonaws.com/ecs/template-service.yml
+#     DependsOn: LogginFluentdTestECSCluster
+    

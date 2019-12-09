@@ -4,25 +4,30 @@ Parameters:
 
   MinPolicyPercent:
       Type: Number
+      Default: 100
 
   MaxPolicyPercent:
-      Type: Number
+    Type: Number
+    Default: 200
 
   CpuUnits:
     Type: String
+    Default: 512
 
   MemoryUnits:
     Type: String
+    Default: 512
 
   DesiredTask:
     Type: Number
+    Default: 1
 
 Resources:
 
   Service:
     Type: AWS::ECS::Service
     Properties:
-      Cluster: LoggingTest
+      Cluster: Testing-Env-Cluster
       ServiceName: LoggingFluentdTest
       PlacementStrategies:
         - Type: binpack
@@ -33,7 +38,7 @@ Resources:
       DesiredCount: !Ref DesiredTask
       TaskDefinition: !Ref Task
       LoadBalancers:
-        - ContainerName: logging-fluent-test
+        - ContainerName: web-server
           ContainerPort: 80
           TargetGroupArn:
             Fn::ImportValue: TargetGroupLogginFluentdTest
@@ -47,39 +52,58 @@ Resources:
         Fn::ImportValue: LogginFluentdTestRole-ARN
       ExecutionRoleArn:
         Fn::ImportValue: LogginFluentdTestRole-ARN
-      PlacementConstraints:
-        - Type: "memberOf"
-          Expression: "attribute:Role == main_node" #This is not a TAG. This is an ecs-agent's attribute.
       ContainerDefinitions:
-        - Name: loggin-fluentd-test
-          Image: 541455984888.dkr.ecr.eu-west-1.amazonaws.com/loggin-fluentd-test:latest ##ESTO HAY QUE HACERLO ANTES...
+        - Name: web-server
+          Image: httpd
           Essential: true
+          LogConfiguration:
+              LogDriver: awsfirelens
+              Options:
+                Name: firehose
+                Region: eu-west-1
+                Delivery_stream: my-stream
           PortMappings:
             - ContainerPort: 80
-          Command:
-            - sleep 1000 # ESTO HAY QUE MIRARLO
+          # Command:
+          #   - sleep 1000 # ESTO HAY QUE MIRARLO
           HealthCheck:
             Command:
               - CMD-SHELL
               - curl -s --fail "http://localhost/"
             StartPeriod: 120
 
-        - Name: Fluent
-          Image: 541455984888.dkr.ecr.eu-west-1.amazonaws.com/fluentd:stable  ### OJO, Esto hay que cambiarlo a Fluent Bits
-          Essential: false
+        - Name: log_router
+          ## 906394416424.dkr.ecr.eu-west-1.amazonaws.com/aws-for-fluent-bit:latest  Esta es la imágen recomendada para AWS
+          Image: "amazon/aws-for-fluent-bit:latest"  
+          Essential: true
+          
+          FirelensConfiguration:
+            Type: "fluentbit"
+            Options: 
+              #- enable-ecs-log-metadata: true
+              config-file-type: s3
+              config-file-value: "arn:aws:s3:::yourbucket/yourdirectory/extra.conf" #Usar un bucket que exista y el extra.conf está en el repo de FireLens
+          
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: firelens-container
+              awslogs-region: eu-west-1
+              awslogs-create-group: "true"
+              awslogs-stream-prefix: firelens
+
           VolumesFrom:
-            - SourceContainer: loggin-fluentd-test
-  
+            - SourceContainer: web-server  
  
 Outputs:
   Service:
     Description: ECS Service Arn for Logging Fluentd Test
     Value: !Ref Service
     Export:
-      Name: !Sub ${AWS::StackName}
+      Name: Service
 
   Task:
-    Description: DH Simulator TargetGroup DH Simulator Arn
+    Description: Logging Fluentd Test TargetGroup Arn
     Value: !Ref Task
     Export:
-      Name: !Sub ${AWS::StackName}-TaskDefinition
+      Name: TaskDefinition

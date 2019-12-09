@@ -10,7 +10,7 @@ Resources:
       SecurityGroupIngress:
         - Description: Traffic from outside to port 80
           FromPort: 80
-          IpProtocol: tcp
+          IpProtocol: "tcp"
           CidrIp: 0.0.0.0/0
           ToPort: 80
       Tags:
@@ -32,6 +32,28 @@ Resources:
       Tags:
         - Key: Name
           Value: LogginFluentdTestSG
+  
+  EcsHostSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the ECS hosts that run containers
+      VpcId: vpc-cf7068a9
+  
+  EcsSecurityGroupIngressFromPublicALB:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from the public ALB
+      GroupId: !Ref 'EcsHostSecurityGroup'
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref 'AlbLogginFluentdTestSG'
+  
+  EcsSecurityGroupIngressFromSelf:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Ingress from other hosts in the same security group
+      GroupId: !Ref 'EcsHostSecurityGroup'
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref 'EcsHostSecurityGroup'
 
   # ElasticSearchSGEgress:
   #   Type: "AWS::EC2::SecurityGroupIngress"
@@ -57,13 +79,19 @@ Resources:
 
 Outputs:
   AlbLogginFluentdTestSG:
-    Description: DHSimulator ALB security group
+    Description: LoggingFluentdTest ALB security group
     Value: !Ref AlbLogginFluentdTestSG
     Export:
-      Name: !Sub ${AWS::StackName}-AlbLogginFluentdTestSG
+      Name: AlbLogginFluentdTestSG
 
   LogginFluentdTestSG:
-    Description: DHSimulator security group
+    Description: LoggingFluentdTest security group
     Value: !Ref LogginFluentdTestSG
     Export:
-      Name: !Sub ${AWS::StackName}-LogginFluentdTestSG
+      Name: LogginFluentdTestSG
+
+  EcsHostSecurityGroup:
+    Description: EcsHostSecurityGroup security group
+    Value: !Ref EcsHostSecurityGroup
+    Export:
+      Name: EcsHostSecurityGroup

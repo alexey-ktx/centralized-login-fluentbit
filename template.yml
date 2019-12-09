@@ -5,27 +5,18 @@ Resources:
  LogginFluentdTestSG:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      Parameters:
-        Param1: AAA #TEMPORAL
-      TemplateURL: Infrastructure/sg/template.yml
+      TemplateURL: https://nested-templates-wip.s3.amazonaws.com/sg/template.yml
   
-  LogginFluentdTestIAM:
+ LogginFluentdTestIAM:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      Parameters:
-        Param1: AAA #TEMPORAL
-      TemplateURL: Infrastructure/iam/template.yml
+      TemplateURL: https://nested-templates-wip.s3.amazonaws.com/iam/template.yml
   
-  LogginFluentdTestALB:
+ LogginFluentdTestALB:
     Type: "AWS::CloudFormation::Stack"
     Properties:
-      Parameters:
-        Param1: AAA #TEMPORAL
-      TemplateURL: Infrastructure/alb/template.yml
-  
-  LogginFluentdTestECS:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      Parameters:
-        Param1: AAA #TEMPORAL
-      TemplateURL: Infrastructure/ecs/template.yml
+      TemplateURL: https://nested-templates-wip.s3.amazonaws.com/alb/template.yml
+    DependsOn: LogginFluentdTestSG
+
+ 
+    
