@@ -56,12 +56,14 @@ Resources:
         - Name: web-server
           Image: httpd
           Essential: true
+          
           LogConfiguration:
               LogDriver: awsfirelens
               Options:
-                Name: firehose
-                Region: eu-west-1
-                Delivery_stream: my-stream
+                Name: forward
+                Host: fluentdhost_el_que_sea
+                Port: "24224"
+
           PortMappings:
             - ContainerPort: 80
           # Command:
@@ -79,10 +81,9 @@ Resources:
           
           FirelensConfiguration:
             Type: "fluentbit"
-            Options: 
-              #- enable-ecs-log-metadata: true
-              config-file-type: s3
-              config-file-value: "arn:aws:s3:::yourbucket/yourdirectory/extra.conf" #Usar un bucket que exista y el extra.conf está en el repo de FireLens
+            # Options: 
+            #   config-file-type: file  #puede ser s3 
+            #   config-file-value: "URL del archivo de configuración (dentro de la imágen)" # "arn:aws:s3:::yourbucket/yourdirectory/extra.conf" #Usar un bucket que exista y el extra.conf está en el repo de FireLens
           
           LogConfiguration:
             LogDriver: awslogs
